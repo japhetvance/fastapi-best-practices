@@ -31,7 +31,6 @@ project-root/
 │   │   └── models.py
 │   │
 │   └── shared/               # Cross-cutting utilities
-│       ├── pagination.py
 │       ├── responses.py      # Standardized response envelopes
 │       └── validators.py
 │
@@ -66,6 +65,7 @@ from app.config import settings
 from app.database import init_db, close_db
 from app.exceptions import register_exception_handlers
 from app.middleware import register_middleware
+from fastapi_pagination import add_pagination
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -83,6 +83,7 @@ def create_app() -> FastAPI:
     register_middleware(app)
     register_routers(app)
     register_exception_handlers(app)
+    add_pagination(app)
     return app
 
 def register_routers(app: FastAPI):

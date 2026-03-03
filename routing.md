@@ -1,4 +1,4 @@
-# Routing, Response Models, Pagination & Versioning
+# Routing, Response Models, Pagination (`fastapi-pagination`) & Versioning
 
 ## Router Setup
 
@@ -87,53 +87,94 @@ async def update_user(
 
 ## Pagination
 
-Use cursor-based pagination for production. Offset pagination is acceptable for internal/admin tools.
+Use [`fastapi-pagination`](https://github.com/uriyyo/fastapi-pagination) for all paginated endpoints. It handles query params, response schema, and database integration automatically.
+
+### Setup
+
+Call `add_pagination(app)` in your app factory:
 
 ```python
-# app/shared/pagination.py
-from pydantic import BaseModel, Field
+# app/main.py
+from fastapi_pagination import add_pagination
 
-class PaginationParams(BaseModel):
-    limit: int = Field(default=20, ge=1, le=100)
-    cursor: str | None = None
-
-class PaginatedResponse[T](BaseModel):
-    items: list[T]
-    next_cursor: str | None = None
-    has_more: bool
-
-# As a dependency
-from fastapi import Query
-
-def get_pagination(
-    limit: int = Query(default=20, ge=1, le=100),
-    cursor: str | None = Query(default=None),
-) -> PaginationParams:
-    return PaginationParams(limit=limit, cursor=cursor)
+def create_app() -> FastAPI:
+    app = FastAPI(...)
+    register_middleware(app)
+    register_routers(app)
+    register_exception_handlers(app)
+    add_pagination(app)  # <-- register pagination
+    return app
 ```
 
-**Cursor-based pagination in the service layer:**
+### Page-based pagination (default)
+
+Use `Page[T]` for standard offset/limit pagination with total count:
 
 ```python
-async def list_users(self, params: PaginationParams) -> PaginatedResponse[User]:
-    query = select(User).order_by(User.id)
+# app/users/router.py
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
+from sqlalchemy import select
 
-    if params.cursor:
-        cursor_id = decode_cursor(params.cursor)
-        query = query.where(User.id > cursor_id)
+@router.get("/", response_model=Page[UserResponse])
+async def list_users(
+    db: AsyncSession = Depends(get_db),
+):
+    return await paginate(db, select(User))
+```
 
-    query = query.limit(params.limit + 1)  # Fetch one extra to check has_more
-    result = await self.db.execute(query)
-    rows = result.scalars().all()
+This auto-adds `page` and `size` query params and returns `items`, `total`, `page`, `size`, `pages`.
 
-    has_more = len(rows) > params.limit
-    items = rows[:params.limit]
+### Cursor-based pagination
 
-    return PaginatedResponse(
-        items=items,
-        has_more=has_more,
-        next_cursor=encode_cursor(items[-1].id) if has_more else None,
-    )
+For large datasets where offset pagination is expensive, use `CursorPage`:
+
+```python
+from fastapi_pagination.cursor import CursorPage
+from fastapi_pagination.ext.sqlalchemy import paginate
+from sqlalchemy import select
+
+@router.get("/", response_model=CursorPage[UserResponse])
+async def list_users(
+    db: AsyncSession = Depends(get_db),
+):
+    return await paginate(db, select(User).order_by(User.id))
+```
+
+### Combining with filters
+
+```python
+@router.get("/", response_model=Page[UserResponse])
+async def list_users(
+    filters: UserFilter = Depends(get_user_filter),
+    db: AsyncSession = Depends(get_db),
+):
+    query = select(User)
+    if filters.role:
+        query = query.where(User.role == filters.role)
+    if filters.is_active is not None:
+        query = query.where(User.is_active == filters.is_active)
+    if filters.search:
+        query = query.where(User.name.ilike(f"%{filters.search}%"))
+    return await paginate(db, query)
+```
+
+### Customizing page size
+
+Use `CustomizedPage` to override defaults:
+
+```python
+from fastapi_pagination.customization import CustomizedPage, UseParamsFields
+
+# Max 50 items per page, default 20
+UserPage = CustomizedPage[
+    Page[UserResponse],
+    UseParamsFields(size=20),
+]
+
+@router.get("/", response_model=UserPage)
+async def list_users(db: AsyncSession = Depends(get_db)):
+    return await paginate(db, select(User))
 ```
 
 ## API Versioning
@@ -219,12 +260,15 @@ def get_user_filter(
         search=search, created_after=created_after,
     )
 
-@router.get("/", response_model=PaginatedResponse[UserResponse])
+@router.get("/", response_model=Page[UserResponse])
 async def list_users(
     filters: UserFilter = Depends(get_user_filter),
-    pagination: PaginationParams = Depends(get_pagination),
     db: AsyncSession = Depends(get_db),
 ):
-    service = UserService(db)
-    return await service.list_users(filters, pagination)
+    query = select(User)
+    if filters.role:
+        query = query.where(User.role == filters.role)
+    if filters.search:
+        query = query.where(User.name.ilike(f"%{filters.search}%"))
+    return await paginate(db, query)
 ```

@@ -24,7 +24,7 @@ See [project-structure.md](./project-structure.md) for:
 See [routing.md](./routing.md) for:
 - Router setup and endpoint patterns
 - Response models and status codes
-- Pagination (offset and cursor-based)
+- Pagination with `fastapi-pagination`
 - API versioning strategies
 
 ## Service Layer
@@ -72,7 +72,7 @@ See [middleware.md](./middleware.md) for:
 
 ## Dependency Injection
 
-Use `Depends()` for everything: sessions, auth, pagination, feature flags.
+Use `Depends()` for everything: sessions, auth, feature flags. Use `fastapi-pagination` for pagination (it handles its own dependency injection via query params).
 
 - Domain-specific deps go in `domain/dependencies.py`
 - Shared deps go in `app/dependencies.py`
@@ -109,7 +109,7 @@ See [deployment.md](./deployment.md) for:
 - Enable `GZipMiddleware` for large payloads
 - Connection pool all external services
 - Cache with Redis for read-heavy endpoints
-- Paginate all list endpoints — never return unbounded collections
+- Paginate all list endpoints with `fastapi-pagination` — never return unbounded collections
 
 ## Logging
 
