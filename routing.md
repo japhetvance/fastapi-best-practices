@@ -2,7 +2,7 @@
 
 ## Router Setup
 
-Each domain gets a single `APIRouter` instance. Prefix and tags are applied when mounting in `main.py`, not in the router itself.
+Each domain gets a single `APIRouter` instance. Prefix and tags are applied when mounting in `app/api.py`, not in the router itself.
 
 ```python
 # app/users/router.py
@@ -139,7 +139,7 @@ async def list_users(self, params: PaginationParams) -> PaginatedResponse[User]:
 Use URL-prefix versioning (`/api/v1/`, `/api/v2/`). It's explicit and works with every client and proxy.
 
 ```python
-# main.py
+# app/api.py
 v1 = APIRouter(prefix="/api/v1")
 v1.include_router(auth_router, prefix="/auth", tags=["auth"])
 v1.include_router(users_router, prefix="/users", tags=["users"])
@@ -147,8 +147,10 @@ v1.include_router(users_router, prefix="/users", tags=["users"])
 v2 = APIRouter(prefix="/api/v2")
 v2.include_router(users_v2_router, prefix="/users", tags=["users-v2"])
 
-app.include_router(v1)
-app.include_router(v2)
+# Export a single router for main.py to mount
+api_router = APIRouter()
+api_router.include_router(v1)
+api_router.include_router(v2)
 ```
 
 When introducing v2:

@@ -85,10 +85,8 @@ Use SQLAlchemy 2.0 `DeclarativeBase` with `Mapped` annotations.
 # app/users/models.py
 from datetime import datetime
 from sqlalchemy import String, func
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-
-class Base(DeclarativeBase):
-    pass
+from sqlalchemy.orm import Mapped, mapped_column
+from app.database import Base
 
 class User(Base):
     __tablename__ = "users"
@@ -104,7 +102,7 @@ class User(Base):
     )
 ```
 
-Put the shared `Base` in `app/database.py` or `app/models/base.py` — one canonical location that all domain models import from.
+Note: `Base` is imported from `app/database.py` where it's defined once. All domain models import `Base` from there. A central `app/models.py` re-exports all domain models so Alembic's `env.py` can see the fully populated `Base.metadata`.
 
 ## Raw SQL vs ORM
 
@@ -165,6 +163,7 @@ Configure `migrations/env.py`:
 
 ```python
 from app.database import Base, engine
+from app import models  # noqa: F401 — triggers all domain model imports via app/models.py
 target_metadata = Base.metadata
 
 # In run_migrations_online():
