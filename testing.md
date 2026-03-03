@@ -196,7 +196,10 @@ class MockPaymentClient:
 @pytest.fixture
 async def client_with_mock_payments(db_session):
     app = create_app()
-    app.dependency_overrides[get_db] = lambda: db_session
+    async def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_payment_client] = lambda: MockPaymentClient()
 
     async with AsyncClient(

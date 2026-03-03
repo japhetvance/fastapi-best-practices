@@ -7,10 +7,12 @@ Each domain gets a single `APIRouter` instance. Prefix and tags are applied when
 ```python
 # app/users/router.py
 from fastapi import APIRouter, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_db
 from app.auth.dependencies import get_current_user
+from app.users.models import User
 from .service import UserService
-from .schemas import UserCreate, UserResponse, UserListResponse
+from .schemas import UserCreate, UserResponse
 
 router = APIRouter()
 

@@ -30,6 +30,7 @@ Inject a unique request ID into every request for tracing across logs.
 
 ```python
 import uuid
+import structlog
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
@@ -37,6 +38,10 @@ class RequestIdMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
         request.state.request_id = request_id
+
+        # Bind to structured logging context so every log line includes request_id
+        structlog.contextvars.bind_contextvars(request_id=request_id)
+
         response = await call_next(request)
         response.headers["X-Request-ID"] = request_id
         return response

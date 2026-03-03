@@ -158,6 +158,7 @@ Run migrations as a separate service that exits after completion. Don't embed mi
 ```python
 # app/main.py or a dedicated health router
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from app.database import engine
 

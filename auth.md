@@ -57,6 +57,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_db
+from app.users.models import User
 from .service import decode_token
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -91,7 +92,9 @@ async def get_current_user(
 # app/auth/router.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from .service import verify_password, create_access_token, create_refresh_token
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.dependencies import get_db
+from .service import verify_password, create_access_token, create_refresh_token, get_user_by_email
 from .schemas import TokenResponse
 
 router = APIRouter()
@@ -121,7 +124,6 @@ Compose role checks as reusable dependencies:
 
 ```python
 # app/auth/dependencies.py
-from functools import wraps
 
 def require_role(*allowed_roles: str):
     """Dependency factory for role-based access."""

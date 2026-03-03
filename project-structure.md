@@ -53,7 +53,7 @@ project-root/
 - Business logic lives in `service.py`, never in routers. Routers are thin — validate input, call service, return response
 - Schemas (Pydantic models) are separate from ORM models. Never return ORM models directly from endpoints
 - Domain-specific dependencies go in the domain's own `dependencies.py`. Shared ones go in `app/dependencies.py`
-- Define `Base = declarative_base()` in `app/database.py`. Create `app/models.py` as a central registry that imports every domain's models
+- Define `Base` using SQLAlchemy 2.0 `DeclarativeBase` in `app/database.py`. Create `app/models.py` as a central registry that imports every domain's models
 
 ## App Factory & Lifespan
 
@@ -64,6 +64,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.config import settings
 from app.database import init_db, close_db
+from app.exceptions import register_exception_handlers
 from app.middleware import register_middleware
 
 @asynccontextmanager

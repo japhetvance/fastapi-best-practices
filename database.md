@@ -6,12 +6,20 @@ Use SQLAlchemy 2.0 async with `asyncpg` for PostgreSQL.
 
 ```python
 # app/database.py
+from sqlalchemy import text
+from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
 from app.config import settings
+
+
+class Base(DeclarativeBase):
+    """Shared declarative base for all ORM models."""
+    pass
+
 
 engine = create_async_engine(
     settings.DATABASE_URL,  # postgresql+asyncpg://user:pass@host/db
